@@ -6,23 +6,32 @@
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+  import HelloWorld from './components/HelloWorld.vue'
+  import Jex from './jex'
 
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
+  export default {
+    name: 'App',
+    components: {
+      HelloWorld
+    },
+    mounted () {
+      const user = Jex.User()
+      user.register({ username: '123', password: '123123' }).then(res => {
+        console.log(res)
+      }).catch(err => {
+        console.log(err)
+      })
+    }
   }
-}
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
+  #app {
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 60px;
+  }
 </style>
