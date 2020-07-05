@@ -1,38 +1,47 @@
-import { count, deleteJex, getJex, increment, postJex } from './api'
+import { count, deleteJex, getJex, increment, postJex, statJex } from './api'
 import { isObject, isString, isNumber } from './dataType'
 import Error from './error'
 
-class Query {
+export class Query {
   constructor (tableName) {
     // The name of the table is the same as the table name on the back end
-    this.tableName = tableName
-    this.queryOptions = {}
-    this.orderOptions = {}
-    this.selects = []
-    this.unSelects = []
-    this.equalOptions = {}
-    this.orOptions = []
-    this.andOptions = []
-    this.statOptions = []
-    this.referenceOptions = []
+    this._tableName = tableName
+    this._queryOptions = {}
+    this._orderOptions = {}
+    this._selects = []
+    this._unSelects = []
+    this._equalOptions = {}
+    this._orOptions = []
+    this._andOptions = []
+    this._statOptions = {}
+    this._referenceOptions = []
   }
   
-  // statTo (operation, field) {
-  //   const operationMap = {
-  //     groupby: 'groupby',
-  //     groupcoun: 'groupcoun',
-  //     sum: 'sum',
-  //     average: 'average',
-  //     max: 'max',
-  //     min: 'min',
-  //     having: 'having',
-  //   }
-  // }
+  statTo (operation, field) {
+    const operationMap = {
+      sum: 'sum',
+      avg: 'avg',
+      max: 'max',
+      min: 'min',
+      having: 'having',
+      order: 'order',
+      groupby: 'groupby',
+      groupcount: 'groupcount',
+    }
+    if (!isString(operation)) {
+      throw new Error(Error.Param, 'Parameter operation need a string type.')
+    }
+    if (!operationMap[operation]) {
+      throw new Error(Error.Param, 'Parameter operation need a operationMap value.')
+    }
+    
+    this._statOptions[operationMap[operation]] = field
+  }
   
   /**
    * Associative table
    * format：
-   * { 'tableName': { select:['column1', 'column2', ...], unselect: ['column3', 'column4', ...] } }
+   * { '_tableName': { select:['column1', 'column2', ...], unselect: ['column3', 'column4', ...] } }
    * @param references: array
    */
   reference (...references) {
@@ -40,7 +49,7 @@ class Query {
     const simple = references.every(v => typeof v === 'string')
     if (simple) {
       references.map(path => {
-        this.referenceOptions.push({ path })
+        this._referenceOptions.push({ path })
       })
       return
     }
@@ -65,7 +74,7 @@ class Query {
       if (Object.keys(select).length !== 0) {
         refObject.select = select
       }
-      this.referenceOptions.push(refObject)
+      this._referenceOptions.push(refObject)
     })
   }
   
@@ -73,7 +82,7 @@ class Query {
    * Counts a field.
    * @param _id: number
    * @param incrementObj: object
-   * @returns {AxiosPromise}
+   * @returns
    */
   increment (_id, incrementObj = {}) {
     if (!isString(_id)) {
@@ -85,7 +94,7 @@ class Query {
     if (Object.keys(incrementObj).length === 0) {
       throw new Error(Error.Param, 'At a minimum, set the field name of the increment')
     }
-    return increment(this.tableName, { _id, incrementObj })
+    return increment(this._tableName, { _id, incrementObj })
   }
   
   /**
@@ -96,7 +105,7 @@ class Query {
     if (!isNumber(skipNumber)) {
       throw new Error(Error.Type, 'Parameter skipNumber need a number type.')
     }
-    this.skipNumber = skipNumber
+    this._skipNumber = skipNumber
   }
   
   /**
@@ -107,7 +116,7 @@ class Query {
     if (!isNumber(limitNumber)) {
       throw new Error(Error.Type, 'Parameter limitNumber need a number type.')
     }
-    this.limitNumber = limitNumber
+    this._limitNumber = limitNumber
   }
   
   /**
@@ -122,7 +131,7 @@ class Query {
     if (!value) {
       throw new Error(Error.Type, 'Parameter value must be required.')
     }
-    this.queryOptions[field] = value
+    this._queryOptions[field] = value
   }
   
   /**
@@ -140,7 +149,7 @@ class Query {
       throw new Error(Error.Type, 'Parameter type must be required.')
     }
     if (orderMap.includes(type)) {
-      this.orderOptions[field] = type
+      this._orderOptions[field] = type
     } else {
       throw new Error('type类型不正确')
     }
@@ -150,22 +159,22 @@ class Query {
    * get list count
    * If condition is empty object, you will get all count.
    * @param condition: object [query condition]
-   * @returns {AxiosPromise}
+   * @returns
    */
-  count (condition = {}) {
-    return count(this.tableName, condition)
+  count (condition = { type: 'count' }) {
+    return count(this._tableName, condition)
   }
   
   /**
    * Condition query of equal query.
    * @param field: string
    * @param operator: string
-   * @param value: string
+   * @param value: string | number | boolean
    * @returns {{}}
    */
   equalTo (field, operator, value) {
-    if (!isString(field) || !isString(operator) || !isString(value)) {
-      throw new Error(Error.Type, 'Parameter field, operator and value must be string type.')
+    if (!isString(field) && !isString(operator)) {
+      throw new Error(Error.Type, 'Parameter field must be string type.')
     }
     if (!field || !operator || !value) {
       throw new Error(Error.Type, 'Parameter field, operator and value can not be empty string.')
@@ -178,11 +187,11 @@ class Query {
       '<=': '$lte',
       '!==': '$ne',
     }
-    const equalOptionsValue = this.equalOptions[field]
-    if (equalOptionsValue) {
-      equalOptionsValue[operatorMap[operator]] = value
+    const _equalOptionsValue = this._equalOptions[field]
+    if (_equalOptionsValue) {
+      _equalOptionsValue[operatorMap[operator]] = value
     } else {
-      this.equalOptions[field] = { [operatorMap[operator]]: value }
+      this._equalOptions[field] = { [operatorMap[operator]]: value }
     }
     return { [field]: { [operatorMap[operator]]: value } }
   }
@@ -192,10 +201,10 @@ class Query {
    * @param querys: array
    */
   or (...querys) {
-    if (querys.length === 0 ) {
+    if (querys.length === 0) {
       throw new Error(Error.Param, 'Parameters can not be empty.')
     }
-    this.orOptions = querys
+    this._orOptions = querys
   }
   
   /**
@@ -203,10 +212,10 @@ class Query {
    * @param querys: array
    */
   and (...querys) {
-    if (querys.length === 0 ) {
+    if (querys.length === 0) {
       throw new Error(Error.Param, 'Parameters can not be empty.')
     }
-    this.andOptions = querys
+    this._andOptions = querys
   }
   
   /**
@@ -215,11 +224,11 @@ class Query {
    * @param fields: array
    */
   select (...fields) {
-    if (fields.length === 0 ) {
+    if (fields.length === 0) {
       throw new Error(Error.Param, 'Parameters can not be empty.')
     }
-    if (this.unSelects.length === 0) {
-      this.selects = fields
+    if (this._unSelects.length === 0) {
+      this._selects = fields
     }
   }
   
@@ -228,11 +237,11 @@ class Query {
    * @param fields： array
    */
   unSelect (...fields) {
-    if (fields.length === 0 ) {
+    if (fields.length === 0) {
       throw new Error(Error.Param, 'Parameters can not be empty.')
     }
-    if (this.selects.length === 0) {
-      this.unSelects = fields
+    if (this._selects.length === 0) {
+      this._unSelects = fields
     }
   }
   
@@ -241,7 +250,7 @@ class Query {
    * This method can be used in conjunction with
    * [set, order, select, unSelect, and, or, equalTo, limit, skip, reference, statTo] method.
    * @param query： string | object
-   * @returns {AxiosPromise}
+   * @returns
    */
   get (query) {
     let body = {}
@@ -254,48 +263,55 @@ class Query {
       }
     }
     
-    if (this.orOptions.length === 0 && this.andOptions.length === 0) {
-      if (Object.keys(this.equalOptions).length > 0) {
-        body.query = Object.assign({}, body.query, this.equalOptions)
+    body.query = Object.assign({}, body.query, this._queryOptions)
+    
+    if (this._orOptions.length === 0 && this._andOptions.length === 0) {
+      if (Object.keys(this._equalOptions).length > 0) {
+        body.query = Object.assign({}, body.query, this._equalOptions)
       }
     }
     
-    if (this.orOptions.length > 0) {
-      body.query = Object.assign({}, body.query, { $or: this.orOptions })
+    if (this._orOptions.length > 0) {
+      body.query = Object.assign({}, body.query, { $or: this._orOptions })
     }
     
-    if (this.andOptions.length > 0) {
-      body.query = Object.assign({}, body.query, { $and: this.andOptions })
+    if (this._andOptions.length > 0) {
+      body.query = Object.assign({}, body.query, { $and: this._andOptions })
     }
     
-    if ((this.skipNumber && !this.limitNumber) || (!this.skipNumber && this.limitNumber)) {
+    if ((this._skipNumber && !this._limitNumber) || (!this._skipNumber && this._limitNumber)) {
       throw new Error(Error.Param, 'The skip method and limit method must exist at the same time.')
     }
     
-    if (this.skipNumber && this.limitNumber) {
+    if (this._skipNumber && this._limitNumber) {
       body.page = {
-        skipNumber: this.skipNumber,
-        limitNumber: this.limitNumber
+        skipNumber: this._skipNumber,
+        limitNumber: this._limitNumber
       }
     }
     
-    if (Object.keys(this.orderOptions).length > 0) {
-      body.order = this.orderOptions
+    if (Object.keys(this._orderOptions).length > 0) {
+      body.order = this._orderOptions
     }
-    if (this.selects.length > 0) {
-      body.selects = this.selects
+    if (this._selects.length > 0) {
+      body.selects = this._selects
     }
-    if (this.unSelects.length > 0) {
-      body.unSelects = this.unSelects
+    if (this._unSelects.length > 0) {
+      body.unSelects = this._unSelects
     }
-    if (this.referenceOptions.length > 0) {
-      if (this.referenceOptions.length === 1) {
-        body.reference = this.referenceOptions[0]
-      } else {
-        body.reference = this.referenceOptions
-      }
+    if (this._referenceOptions.length > 0) {
+      // if (this._referenceOptions.length === 1) {
+      //   body.reference = this._referenceOptions[0]
+      // } else {
+      // }
+      body.reference = this._referenceOptions
     }
-    return getJex(this.tableName, body)
+    if (Object.keys(this._statOptions).length === 0) {
+      return getJex(this._tableName, body)
+    } else {
+      body.stat = this._statOptions
+      return statJex(this._tableName, body)
+    }
   }
   
   /**
@@ -307,21 +323,24 @@ class Query {
    * This method can be used in conjunction with set method.
    * @param data: required
    * @param query: not always be required
-   * @returns {AxiosPromise}
+   * @returns
    */
   save (data = {}, query = {}) {
     if (!isObject(data) || !isObject(query)) {
       throw new Error(Error.Type, 'Parameter data or query need an object type.')
     }
-    if (this.queryOptions._id) {
-      query = { _id: this.queryOptions._id }
+    if (this._queryOptions._id) {
+      query = { _id: this._queryOptions._id }
     }
     const keys = Object.keys(data)
-    if (keys.length === 0) {
-      throw new Error(Error.Param, 'Parameter data can not be empty object.')
+    const _queryOptionsKeys = Object.keys(this._queryOptions)
+    if (_queryOptionsKeys.length === 0 && keys.length === 0) {
+      throw new Error(Error.Param, 'Need save data.')
+    } else {
+      data = Object.assign({}, data, this._queryOptions)
     }
-    const body = Object.assign({}, this.queryOptions, data, query)
-    return postJex(this.tableName, body)
+    const body = Object.assign({}, { data }, { query })
+    return postJex(this._tableName, body)
   }
   
   /**
@@ -331,10 +350,10 @@ class Query {
    * the other deletion conditions of the record.
    * This method can be used in conjunction with set method.
    * @param data： string | object
-   * @returns {AxiosPromise}
+   * @returns
    */
   remove (data) {
-    if (!isString(data) || !isObject(data)) {
+    if (!isString(data) && !isObject(data)) {
       throw new Error(Error.Type, 'Parameter data need string type or object type.')
     }
     let body = {}
@@ -347,12 +366,12 @@ class Query {
       }
     }
     if (isObject(data)) {
-      body = Object.assign({}, data, this.queryOptions)
+      body = Object.assign({}, data, this._queryOptions)
       if (Object.keys(body).length === 0) {
         throw new Error(Error.Param, 'Parameter data can not be empty object.')
       }
     }
-    return deleteJex(this.tableName, body)
+    return deleteJex(this._tableName, body)
   }
 }
 

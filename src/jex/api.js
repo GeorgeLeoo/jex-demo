@@ -1,5 +1,6 @@
 import request from './request'
 import URL from './url'
+import { getUid } from './auth'
 
 export function signIn (body) {
   return request({
@@ -11,7 +12,7 @@ export function signIn (body) {
 
 export function signUp (body) {
   return request({
-    url: URL.SIGN_IN,
+    url: URL.SIGN_UP,
     method: 'post',
     data: body
   })
@@ -27,7 +28,10 @@ export function logout () {
 export function current () {
   return request({
     url: URL.CURRENT,
-    method: 'post'
+    method: 'post',
+    data: {
+      uid: getUid()
+    }
   })
 }
 
@@ -66,6 +70,14 @@ export function postJex (tableName, body) {
 export function deleteJex (tableName, body) {
   return request({
     url: URL.DELETE(tableName),
+    method: 'post',
+    data: body
+  })
+}
+
+export function statJex (tableName, body) {
+  return request({
+    url: URL.STAT(tableName),
     method: 'post',
     data: body
   })

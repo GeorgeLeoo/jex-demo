@@ -5,7 +5,8 @@ const ErrorCode = {
 
 class Error {
   constructor (code, message) {
-    const error = new Error()
+    const E = window.Error || global.Error
+    const error = new E()
     error.code = code
     error.message = `Jex Error: { code: ${code}, message: ${message || this.errorMessage(code)} }`
     return error

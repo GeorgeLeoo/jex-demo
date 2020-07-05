@@ -1,33 +1,26 @@
 import { current, logout, signIn, signUp } from './api'
-import { isBoolean, isString } from './dataType'
+import { isString } from './dataType'
 import Error from './error'
+import { Query } from './query'
 
-class User {
+class User extends Query {
   constructor () {
-    // Whether to use captcha
-    this._isUseCapture = false
-    this.signType = {
+    super()
+    this._signType = {
       SIGN_IN: 'SIGN_IN',
       SIGN_UP: 'SIGN_UP'
     }
   }
   
-  useCapture (flg) {
-    if (!isBoolean(flg)) {
-      throw new Error(Error.Type, 'The flg need a Boolean type.')
-    }
-    this.isUseCapture = flg
+  login (username, password) {
+    return this._sign({ signType: this._signType.SIGN_IN, username, password })
   }
   
-  login (username, password, capture) {
-    return this._sign({ signType: this.signType.SIGN_IN, username, password, capture })
+  register ({ username, password, email, phone }) {
+    return this._sign({ signType: this._signType.SIGN_UP, username, password, email, phone })
   }
   
-  register ({ username, password, capture, email, phone }) {
-    return this._sign({ signType: this.signType.SIGN_UP, username, password, capture, email, phone })
-  }
-  
-  _sign({ signType, username, password, capture, email, phone }) {
+  _sign({ signType, username, password, email, phone }) {
     if (!isString(username)) {
       throw new Error(Error.Type, 'The username need a String type.')
     }
@@ -45,23 +38,14 @@ class User {
       password: password.trim()
     }
   
-    if (signType === this.signType.SIGN_UP) {
+    if (signType === this._signType.SIGN_UP) {
       email && (body.email = email)
       phone && (body.phone = phone)
     }
   
-    if (this.isUseCapture) {
-      if (!isString(capture)) {
-        throw new Error(Error.Type,'The capture need a String type.')
-      }
-      if (!capture) {
-        throw new Error(Error.Param,'The capture code can not be undefined or "".')
-      }
-      body.capture = capture
-    }
-    if (signType === this.signType.SIGN_IN) {
+    if (signType === this._signType.SIGN_IN) {
       return signIn(body)
-    } else if (signType === this.signType.SIGN_UP) {
+    } else if (signType === this._signType.SIGN_UP) {
       return signUp(body)
     } else {
       throw new Error(Error.Param, 'signType is wrong.')
@@ -74,6 +58,11 @@ class User {
   
   current () {
     return current()
+  }
+  
+  users (query) {
+    this._tableName = 'User'
+    return this.get(query)
   }
 }
 

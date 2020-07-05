@@ -1,5 +1,6 @@
-import utils from './utils'
 import axios from 'axios'
+import utils from './utils'
+import { getToken, setToken, setUid } from './auth'
 
 const t = Math.round(new Date().getTime() / 1000)
 const rand = utils.randomString()
@@ -16,10 +17,26 @@ const request = axios.create({
   headers: header
 })
 
+request.interceptors.request.use(async config => {
+  const token = getToken()
+  if (token) {
+    config.headers['X-Jex-Token'] = getToken()
+  }
+  return config
+}, error => {
+  return Promise.reject(error)
+})
+
 // response interceptor
 request.interceptors.response.use(
   response => {
-    return response.data
+    const url = response.config.url
+    const data = response.data
+    if (url === '/user/sign-in') {
+      setToken(data.data.token)
+      setUid(data.data.uid)
+    }
+    return data
   },
   error => {
     return Promise.reject(error)
