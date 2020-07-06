@@ -1,18 +1,15 @@
 import Error from './error'
-import request from './request'
-import { FILE } from './url'
 import { isString } from './dataType'
-
+import { uploadFileJex } from './api'
 let list = []
 
 class File {
-  constructor (name, parma) {
-    if (name && parma) {
-      if (!isString(name)) {
+  constructor (fileName, file) {
+    if (fileName && file) {
+      if (!isString(fileName)) {
         throw new Error(Error.Type)
       }
-      let ext = name.substring(name.lastIndexOf('.') + 1)
-      list.push({ name: name, route: `${FILE}/${new Date().getTime()}.${ext}`, data: parma })
+      list.push({ fileName: fileName, file })
     }
   }
   
@@ -20,24 +17,15 @@ class File {
     if (!list.length) {
       throw new Error(Error.Type)
     }
-    let fileObj
-    fileObj = new Promise((resolve, reject) => {
-      const data = []
-      for (let item of list) {
-        request(item.route, 'post', item.data).then((url) => {
-          data.push(url)
-          if (data.length === list.length) {
-            list = []
-            resolve(data)
-            reject(data)
-          }
-        }).catch(err => {
-          data.push(err)
-        })
-      }
+    const formData = new FormData()
+    console.log(list)
+    list.map(v => {
+      formData.append('files', v.file)
     })
-    return fileObj
+    return uploadFileJex(formData)
   }
 }
 
-export default new File()
+export default function (fileName, file) {
+  return new File(fileName, file)
+}

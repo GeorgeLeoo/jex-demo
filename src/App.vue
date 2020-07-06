@@ -2,6 +2,8 @@
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
     <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <input type="file" multiple @change="handleChange">
+    <button @click="handleUpload">上传</button>
   </div>
 </template>
 
@@ -26,14 +28,15 @@
       // user.login('12', '12341234')
       // user.register({ username: '122', password: '12341234' })
 
-      const query = Jex.Query('ArticleScore')
+      // const query = Jex.Query('ArticleScore')
       // const article = Jex.Query('Article')
       // // query.statTo('sum', 'score')
       // query.set('score', 11)
       // query.set('title', 'xxxxx')
       // query.set('author', 'cc')
       // query.set('money', 30)
-      // query.save().then(res => {
+      // [{title:'xxx'}, {title: 'cccc'}]
+      // query.save([{remark:'xxx'}, {remark: 'cccc'}]).then(res => {
       //   console.log(res)
       // }).catch(err => {
       //   console.log(err)
@@ -70,13 +73,31 @@
       // query.statTo('max', 'score')
       // query.statTo('min', 'score')
       // query.order('_sum_score', 'desc')
-      // TODO: 批量删除
-      query.reference('User')
-      query.get().then(res => {
-        console.log(res)
-      }).catch(err => {
-        console.log(err)
-      })
+      // query.reference({ 'User': { unselect: ['username', 'email'] } })
+
+      // query.removeMany(['5f01770014e793fda188386c', '5f0176dd14e793fda188386b']).then(res => {
+      //   console.log(res)
+      // }).catch(err => {
+      //   console.log(err)
+      // })
+    },
+    methods: {
+      handleChange (e) {
+        const files = e.target.files
+        let jexFile
+        for (let item of files) {
+          jexFile = Jex.File(item.name, item)
+        }
+        // jexFile = Jex.File(files.name, files)
+        jexFile.save().then(res => {
+          console.log(res)
+        }).catch(err => {
+          console.log(err)
+        })
+      },
+      handleUpload () {
+        // const query = Jex.Query('ArticleScore')
+      }
     }
   }
 </script>

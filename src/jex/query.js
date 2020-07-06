@@ -1,5 +1,5 @@
-import { count, deleteJex, getJex, increment, postJex, statJex } from './api'
-import { isObject, isString, isNumber } from './dataType'
+import { count, deleteJex, deleteManyJex, getJex, increment, postJex, statJex } from './api'
+import { isObject, isString, isNumber, isArray } from './dataType'
 import Error from './error'
 
 export class Query {
@@ -326,21 +326,39 @@ export class Query {
    * @returns
    */
   save (data = {}, query = {}) {
-    if (!isObject(data) || !isObject(query)) {
-      throw new Error(Error.Type, 'Parameter data or query need an object type.')
+    console.log(data)
+    if (!isObject(data) && !isArray(data)) {
+      throw new Error(Error.Type, 'Parameter data need an object or array type.')
+    }
+    if (!isObject(query)) {
+      throw new Error(Error.Type, 'Parameter query need an object type.')
     }
     if (this._queryOptions._id) {
       query = { _id: this._queryOptions._id }
     }
-    const keys = Object.keys(data)
-    const _queryOptionsKeys = Object.keys(this._queryOptions)
-    if (_queryOptionsKeys.length === 0 && keys.length === 0) {
-      throw new Error(Error.Param, 'Need save data.')
+    if (isArray(data)) {
+      const body = Object.assign({}, { data }, { query: {} })
+      return postJex(this._tableName, body)
     } else {
-      data = Object.assign({}, data, this._queryOptions)
+      const keys = Object.keys(data)
+      const _queryOptionsKeys = Object.keys(this._queryOptions)
+      if (_queryOptionsKeys.length === 0 && keys.length === 0) {
+        throw new Error(Error.Param, 'Need save data.')
+      } else {
+        data = Object.assign({}, data, this._queryOptions)
+      }
+      const body = Object.assign({}, { data }, { query })
+      return postJex(this._tableName, body)
     }
-    const body = Object.assign({}, { data }, { query })
-    return postJex(this._tableName, body)
+    // const keys = Object.keys(data)
+    // const _queryOptionsKeys = Object.keys(this._queryOptions)
+    // if (_queryOptionsKeys.length === 0 && keys.length === 0) {
+    //   throw new Error(Error.Param, 'Need save data.')
+    // } else {
+    //   data = Object.assign({}, data, this._queryOptions)
+    // }
+    // const body = Object.assign({}, { data }, { query })
+    // return postJex(this._tableName, body)
   }
   
   /**
@@ -372,6 +390,12 @@ export class Query {
       }
     }
     return deleteJex(this._tableName, body)
+  }
+  removeMany (data) {
+    if (!isArray(data) || data.length === 0) {
+      throw new Error(Error.Param, 'The condition can must be array type and condition length must > 0.')
+    }
+    return deleteManyJex(this._tableName, data)
   }
 }
 

@@ -75,9 +75,25 @@ export function deleteJex (tableName, body) {
   })
 }
 
+export function deleteManyJex (tableName, body) {
+  return request({
+    url: URL.DELETE_MANY(tableName),
+    method: 'post',
+    data: body
+  })
+}
+
 export function statJex (tableName, body) {
   return request({
     url: URL.STAT(tableName),
+    method: 'post',
+    data: body
+  })
+}
+
+export function uploadFileJex (body) {
+  return request({
+    url: URL.FILE,
     method: 'post',
     data: body
   })
