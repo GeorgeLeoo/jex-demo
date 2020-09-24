@@ -1,6 +1,6 @@
 {
-  "name": "jex-demo",
-  "version": "0.1.0",
+  "name": "jex-js-skd",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "bootstrap": "yarn | npm install",
